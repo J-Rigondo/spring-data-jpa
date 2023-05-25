@@ -2,18 +2,46 @@ package com.example.datajpa.entity;
 
 import lombok.*;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
+import javax.persistence.*;
 
 @Entity
 @Getter @Setter
-@AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Builder
+@ToString(of = {"id","username","age"})
 public class Member {
 
     @Id @GeneratedValue
     private Long id;
     private String username;
+    private int age;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "team_id")
+    private Team team;
+
+    @Builder
+    public Member(Long id, String username, int age) {
+        this.id = id;
+        this.username = username;
+        this.age = age;
+    }
+
+    public Member(String username) {
+        this(username, 0);
+    }
+    public Member(String username, int age) {
+        this(username, age, null);
+    }
+    public Member(String username, int age, Team team) {
+        this.username = username;
+        this.age = age;
+//        this.team = team;
+        if (team != null) {
+            changeTeam(team);
+        }
+    }
+    public void changeTeam(Team team) {
+        this.team = team;
+        team.getMembers().add(this);
+    }
 }
