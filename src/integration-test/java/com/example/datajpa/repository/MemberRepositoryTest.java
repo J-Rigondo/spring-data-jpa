@@ -93,6 +93,7 @@ public class MemberRepositoryTest {
         PageRequest pageRequest = PageRequest.of(offset, size, Sort.by(Sort.Direction.DESC, "username"));
         Page<Member> members = memberRepository.findByAge(20, pageRequest);
 
+        Page<MemberDto> map = members.map(member -> MemberDto.builder().id(member.getId()).build());
 
         int totalPages = members.getTotalPages();
         System.out.println(totalPages);
