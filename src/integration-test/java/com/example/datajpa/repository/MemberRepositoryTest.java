@@ -17,6 +17,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -30,24 +32,25 @@ public class MemberRepositoryTest {
     MemberRepository memberRepository;
     @Autowired
     TeamRepository teamRepository;
-    @Autowired
-    RolesRepository rolesRepository;
+    //자바 표준 스펙은 PersistenceContext, Autowired도 허용하긴 함
+    @PersistenceContext
+    EntityManager em;
 
-    @BeforeEach
-    void before(){
-        Roles user = Roles.builder().name("USER").build();
-        Roles premium = Roles.builder().name("PREMIUM").build();
-        Roles silver = Roles.builder().name("SILVER").build();
-        rolesRepository.save(user);
-        rolesRepository.save(premium);
-        rolesRepository.save(silver);
-
-        Team prism = Team.builder().name("PRISM").build();
-        teamRepository.save(prism);
-
-        Member jun = new Member("jun", 33, prism, List.of(user,premium,silver));
-        memberRepository.save(jun);
-    }
+//    @BeforeEach
+//    void before(){
+//        Roles user = Roles.builder().name("USER").build();
+//        Roles premium = Roles.builder().name("PREMIUM").build();
+//        Roles silver = Roles.builder().name("SILVER").build();
+//        rolesRepository.save(user);
+//        rolesRepository.save(premium);
+//        rolesRepository.save(silver);
+//
+//        Team prism = Team.builder().name("PRISM").build();
+//        teamRepository.save(prism);
+//
+//        Member jun = new Member("jun", 33, prism, List.of(user,premium,silver));
+//        memberRepository.save(jun);
+//    }
 
     @Test
     public void testMember() throws Exception {
@@ -62,9 +65,6 @@ public class MemberRepositoryTest {
         Member member = memberRepository.findByUsername("jun")
                 .orElseThrow(() -> new RuntimeException("not found"));
 
-        member.getRoles().forEach(roles -> System.out.println(roles.getName()));
-
-        member.setRoles(new ArrayList<>());
 
         System.out.println("=============TEST END================");
 
@@ -128,5 +128,63 @@ public class MemberRepositoryTest {
         List<Member> content = members.getContent();
 
         Page<Member> optByAge = memberRepository.findOptByAge(20, pageRequest);
+    }
+
+    @Test
+    void bulkUpdate() {
+        //영속성에만 있고 아직 db에는 안날라감
+        memberRepository.save(new Member("jun", 20));
+        memberRepository.save(new Member("jun1", 20));
+        memberRepository.save(new Member("jun2", 30));
+        memberRepository.save(new Member("jun3", 20));
+        memberRepository.save(new Member("jun4", 40));
+
+        //벌크연산 주의점은 영속성 컨텍스트 무시하고 db에 바로 날림
+        int affectedCount = memberRepository.bulkAgePlus(30);
+        System.out.println("affectedCount = " + affectedCount);
+
+
+        Member member = memberRepository.findByUsername("jun4")
+                .orElseThrow(() -> new RuntimeException("not found"));
+
+        System.out.println("member = " + member);
+    }
+
+    @Test
+    void entityGraph() {
+        Team teamA = new Team("A");
+        Team teamB = new Team("B");
+
+        teamRepository.save(teamA);
+        teamRepository.save(teamB);
+
+        memberRepository.save(new Member("jun", 20, teamA));
+        memberRepository.save(new Member("jun1", 30 ,teamB));
+
+        em.flush();
+        em.clear();
+
+        Team A = teamRepository.findByName("A")
+                .orElseThrow(() -> new RuntimeException());
+        A.getMembers().forEach(member -> System.out.println("member = " + member));
+
+        Member graphMember = memberRepository.findFetchByUsername("jun")
+                .orElseThrow(() -> new RuntimeException());
+        System.out.println("graphMember = " + graphMember);
+
+
+    }
+
+    @Test
+    void HintTest() {
+        memberRepository.save(new Member("jun", 20));
+        em.flush();
+        em.clear();
+
+        Member member = memberRepository.findReadOnlyByUsername("jun")
+                .orElseThrow(() -> new RuntimeException());
+
+        member.setAge(31);
+
     }
 }

@@ -17,16 +17,17 @@ public class Member {
     private String username;
     private int age;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "team_id") name은 외래키 이름, refrenced가 참조 컬럼, 생략하면 Id로 자동 매칭
+    @ManyToOne(fetch = FetchType.LAZY) //fetch join은 기본적으로 left outer join
+    //name은 외래키 이름(column 명), refrenced가 참조 컬럼, 생략하면 @Id 값이랑 자동 매칭
+    @JoinColumn(name = "team_id")
     private Team team;
 
-    @ManyToMany(cascade=CascadeType.ALL, fetch=FetchType.LAZY)
-    @JoinTable(name="member_roles",
-            joinColumns = {@JoinColumn(name="member_id", referencedColumnName="id")},
-            inverseJoinColumns = {@JoinColumn(name="role_id", referencedColumnName="id")}
-    )
-    private List<Roles> roles = new ArrayList<>();
+//    @ManyToMany(cascade=CascadeType.ALL, fetch=FetchType.LAZY)
+//    @JoinTable(name="member_roles",
+//            joinColumns = {@JoinColumn(name="member_id", referencedColumnName="id")},
+//            inverseJoinColumns = {@JoinColumn(name="role_id", referencedColumnName="id")}
+//    )
+//    private List<Roles> roles = new ArrayList<>();
 
     @Builder
     public Member(Long id, String username, int age) {
@@ -48,16 +49,6 @@ public class Member {
         if (team != null) {
             changeTeam(team);
         }
-    }
-
-    public Member(String username, int age, Team team, List<Roles> roles) {
-        this.username = username;
-        this.age = age;
-//        this.team = team;
-        if (team != null) {
-            changeTeam(team);
-        }
-        this.roles = roles;
     }
 
     public void changeTeam(Team team) {
